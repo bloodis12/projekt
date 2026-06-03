@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 
-const API_URL = "http://localhost/notatnik/api.php";
+const API_URL = "https://localhost//api.php";
 
 export default function BjjNotebook() {
   const [title, setTitle] = useState("");

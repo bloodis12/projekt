@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tester API BJJ Notes</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 0 20px;
+            background-color: #f4f4f9;
+        }
+        h1, h2 { color: #333; }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 12px;
+        }
+        label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: bold;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+        }
+        button:hover { background-color: #218838; }
+        .btn-refresh {
+            background-color: #007bff;
+            margin-bottom: 15px;
+        }
+        .btn-refresh:hover { background-color: #0069d9; }
+        pre {
+            background: #272822;
+            color: #f8f8f2;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            max-height: 400px;
+        }
+        .note-item {
+            border-bottom: 1px solid #eee;
+            padding: 10px 0;
+        }
+        .note-item:last-child { border-bottom: none; }
+        .badge {
+            background: #6c757d;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🥋 BJJ Notes - Tester API</h1>
+
+    <div class="container">
+        <!-- FORMULARZ DODAWANIA (POST) -->
+        <div class="card">
+            <h2>Dodaj nową technikę (POST)</h2>
+            <form id="addNoteForm" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="title">Tytuł *</label>
+                    <input type="text" id="title" name="title" required placeholder="np. D'Arce Choke">
+                </div>
+                <div class="form-group">
+                    <label for="category">Kategoria *</label>
+                    <input type="text" id="category" name="category" required placeholder="np. Dduszenia, Guard, Pass">
+                </div>
+                <div class="form-group">
+                    <label for="content">Opis techniki *</label>
+                    <textarea id="content" name="content" rows="4" required placeholder="Krok po kroku..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="youtube_url">Link YouTube (opcjonalnie)</label>
+                    <input type="url" id="youtube_url" name="youtube_url" placeholder="https://youtube.com/...">
+                </div>
+                <div class="form-group">
+                    <label for="video_file">Plik Wideo (opcjonalnie)</label>
+                    <input type="file" id="video_file" name="video_file" accept="video/*">
+                </div>
+                <button type="submit">Zapisz w bazie</button>
+            </form>
+            <div id="responseMessage" style="margin-top: 15px;"></div>
+        </div>
+
+        <!-- LISTA ZAPISANYCH NOTATEK (GET) -->
+        <div class="card">
+            <h2>Lista technik w bazie (GET)</h2>
+            <button class="btn-refresh" onclick="fetchNotes()">🔄 Odśwież listę</button>
+            <div id="notesList">Ładowanie danych...</div>
+        </div>
+    </div>
+
+    <!-- PODGLĄD SUROWEJ ODPOWIEDZI JSON -->
+    <div class="card" style="margin-top: 20px;">
+        <h2>Surowa odpowiedź JSON z serwera</h2>
+        <pre id="jsonOutput">// Tutaj pojawi się odpowiedź JSON po pobraniu danych</pre>
+    </div>
+
+    <script>
+        // Ścieżka do Twojego pliku PHP
+        const API_URL = 'api.php';
+
+        // 1. POBIERANIE NOTATEK (GET)
+        async function fetchNotes() {
+            const notesListDiv = document.getElementById('notesList');
+            const jsonOutput = document.getElementById('jsonOutput');
+            
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+
+                // Wyświetl surowy JSON na dole strony
+                jsonOutput.textContent = JSON.stringify(data, null, 2);
+
+                if (Array.isArray(data) && data.length > 0) {
+                    notesListDiv.innerHTML = data.map(note => `
+                        <div class="note-item">
+                            <span class="badge">${escapeHtml(note.category)}</span>
+                            <strong>${escapeHtml(note.title)}</strong>
+                            <p style="margin: 5px 0; font-size: 14px;">${escapeHtml(note.content)}</p>
+                            ${note.youtube_url ? `<small>🔗 <a href="${escapeHtml(note.youtube_url)}" target="_blank">YouTube</a></small><br>` : ''}
+                            ${note.video_file_path ? `<small>📁 Wideo: <a href="${escapeHtml(note.video_file_path)}" target="_blank">Zobacz plik</a></small>` : ''}
+                        </div>
+                    `).join('');
+                } else if (data.error) {
+                    notesListDiv.innerHTML = `<p style="color:red;">Błąd: ${data.error}</p>`;
+                } else {
+                    notesListDiv.innerHTML = '<p>Brak notatek w bazie.</p>';
+                }
+            } catch (error) {
+                notesListDiv.innerHTML = '<p style="color:red;">Nie udało się połączyć z API.</p>';
+                jsonOutput.textContent = 'Błąd połączenia: ' + error;
+            }
+        }
+
+        // 2. DODAWANIE NOTATKI (POST)
+        document.getElementById('addNoteForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const messageDiv = document.getElementById('responseMessage');
+            messageDiv.innerHTML = 'Wysyłanie...';
+
+            const formData = new FormData(this);
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: formData // Fetch automatycznie ustawi odpowiednie nagłówki dla multipart/form-data
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    messageDiv.innerHTML = `<p style="color:green;">✅ ${result.message} (ID: ${result.id})</p>`;
+                    this.reset(); // Czyszczenie formularza
+                    fetchNotes(); // Auto-odświeżenie listy po dodaniu
+                } else {
+                    messageDiv.innerHTML = `<p style="color:red;">❌ Błąd: ${result.error}</p>`;
+                }
+            } catch (error) {
+                messageDiv.innerHTML = `<p style="color:red;">❌ Błąd połączenia z serwerem.</p>`;
+            }
+        });
+
+        // Pomocnicza funkcja do zabezpieczenia przed XSS przy wyświetlaniu tekstu
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text.toString()
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Pobierz dane przy pierwszym załadowaniu strony
+        fetchNotes();
+    </script>
+</body>
+</html>

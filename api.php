@@ -5,10 +5,10 @@ header("Access-Control-Allow-Methods: GET, POST");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
 // --- KONFIGURACJA BAZY DANYCH ---
-$host = "twor_host_np_localhost";
-$db_name = "nazwa_twojej_bazy";
-$username = "uzytkownik_bazy";
-$password = "haslo_bazy";
+$host = "localhost";
+$db_name = "bjj";
+$username = "root";
+$password = "";
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$db_name;charset=utf8", $username, $password);
